@@ -22,6 +22,8 @@ export default function UrlForm({ onSuccess }) {
       onSuccess?.();
     }
   };
+  const isActive = url.trim().length > 0;
+
 
 const Spacer = ({ size = "md", horizontal = false }) => {
   const map = {
@@ -81,13 +83,21 @@ const Spacer = ({ size = "md", horizontal = false }) => {
       </div>
 
       <button
-        type="submit"
-        disabled={loading}
-        className="w-full h-12 bg-[#2dd4bf] text-slate-900 font-semibold rounded-xl flex items-center justify-center gap-2 disabled:opacity-50"
-      >
-        {loading ? "Creating..." : "Shorten URL"}
-        <Sparkles className="w-4 h-4" />
-      </button>
+  type="submit"
+  disabled={!isActive || loading}
+  className={`
+    w-full h-12 rounded-xl flex items-center justify-center gap-2
+    font-semibold transition-all duration-300
+    ${isActive
+      ? "bg-[#2dd4bf] text-slate-900 "
+      : "bg-[#2dd4bf]/40 text-slate-900/70 cursor-not-allowed"
+    }
+  `}
+>
+  {loading ? "Creating..." : "Shorten URL"}
+  <Sparkles className="w-4 h-4" />
+</button>
+
     </form>
   );
 }
