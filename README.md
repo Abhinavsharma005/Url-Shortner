@@ -392,18 +392,8 @@ This project is licensed under the ISC License.
 ## 👨‍💻 Author
 
 **Your Name**
-- GitHub: [@yourusername](https://github.com/yourusername)
-- Email: your.email@example.com
-
-## 🤝 Contributing
-
-Contributions, issues, and feature requests are welcome!
-
-1. Fork the project
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- GitHub: [Abhinav Sharma]([https://github.com/Abhinavsharma005])
+- Email: sharmaabhinav1013@gmail.com
 
 ## 🙏 Acknowledgments
 
