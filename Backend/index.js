@@ -13,7 +13,7 @@ const PORT = process.env.PORT ?? 8000;
 app.use(
   cors({
     origin: [
-      "http://localhost:5173",     // dev
+      process.env.CORS_ORIGIN,     // dev
       "https://shorty.app",         // prod frontend
       "https://www.shorty.app"
     ],
