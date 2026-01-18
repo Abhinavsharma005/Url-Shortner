@@ -392,7 +392,7 @@ This project is licensed under the ISC License.
 ## 👨‍💻 Author
 
 **Your Name**
-- GitHub: [Abhinav Sharma]([https://github.com/Abhinavsharma005])
+- GitHub: [Abhinav Sharma](https://github.com/Abhinavsharma005)
 - Email: sharmaabhinav1013@gmail.com
 
 ## 🙏 Acknowledgments
