@@ -146,7 +146,7 @@ export default function Dashboard() {
       <footer className="mt-20 border-t border-white/10 backdrop-blur-md">
         <div className="container mx-auto px-4 py-6 text-center text-slate-400 text-sm">
           <Spacer size="md" />
-          © 2025 Abhinav Sharma. All rights reserved.
+          © 2026 Abhinav Sharma. All rights reserved.
           <Spacer size="md" />
         </div>
       </footer>
