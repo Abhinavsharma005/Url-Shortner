@@ -421,66 +421,6 @@ url-shortener/
     └── package.json
 ```
 
-## 🚀 Getting Started
-
-### Prerequisites
-
-- **Node.js** (v18 or higher)
-- **pnpm** (v8 or higher)
-- **PostgreSQL** database (Neon account)
-
-### Installation
-
-1. **Clone the repository**
-```bash
-git clone https://github.com/yourusername/url-shortener.git
-cd url-shortener
-```
-
-2. **Setup Backend**
-
-```bash
-cd backend
-
-# Install dependencies
-pnpm install
-
-# Create .env file
-cat > .env << EOL
-DATABASE_URL=postgresql://username:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
-JWT_SECRET=your-super-secret-jwt-key-change-this
-PORT=8000
-EOL
-
-# Push database schema
-pnpm db:push
-
-# Start development server
-pnpm dev
-```
-
-3. **Setup Frontend**
-
-```bash
-cd frontend
-
-# Install dependencies
-pnpm install
-
-# Create .env file
-cat > .env << EOL
-VITE_API_BASE_URL=http://localhost:8000
-VITE_APP_URL=http://localhost:5173
-EOL
-
-# Start development server
-pnpm dev
-```
-
-4. **Open your browser**
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:8000
-
 ## 📚 API Documentation
 
 ### Authentication
