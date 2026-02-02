@@ -584,7 +584,7 @@ This project is licensed under the ISC License.
 
 ## 👨‍💻 Author
 
-**Your Name**
+**Abhinav Sharma**
 - GitHub: [Abhinav Sharma](https://github.com/Abhinavsharma005)
 - Email: sharmaabhinav1013@gmail.com
 
