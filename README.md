@@ -40,6 +40,334 @@ A modern, full-stack URL shortening application built with React, Express.js, an
 - **Neon** - PostgreSQL database
 - **pnpm** - Package manager
 
+## 🔄 Project Flow
+
+### High-Level Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                            USER                                 │
+│                    (Browser/Mobile)                             │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    VERCEL (Frontend)                            │
+│              https://your-app.vercel.app                        │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  React SPA (Single Page Application)                      │ │
+│  │  • Vite Build                                             │ │
+│  │  • Redux State Management                                 │ │
+│  │  • React Router (Client-side routing)                     │ │
+│  │  • Tailwind CSS (Styling)                                 │ │
+│  └───────────────────────────────────────────────────────────┘ │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+                         │ HTTPS API Calls (Axios)
+                         │
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                  RENDER (Backend API)                           │
+│         https://url-shortener-backend.onrender.com              │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  Express.js REST API                                       │ │
+│  │                                                            │ │
+│  │  Public Routes:                                            │ │
+│  │  • GET  /:shortCode → Redirect to original URL            │ │
+│  │                                                            │ │
+│  │  Auth Routes:                                              │ │
+│  │  • POST /user/signup → Create account                     │ │
+│  │  • POST /user/login  → Get JWT token                      │ │
+│  │                                                            │ │
+│  │  Protected Routes (JWT Required):                         │ │
+│  │  • POST   /shorten → Create short URL                     │ │
+│  │  • GET    /codes   → Get user's URLs                      │ │
+│  │  • DELETE /:id     → Delete URL                           │ │
+│  │                                                            │ │
+│  │  Middleware:                                               │ │
+│  │  • CORS (Allow Vercel origin)                             │ │
+│  │  • JWT Authentication                                      │ │
+│  │  • Request Validation (Zod)                               │ │
+│  └───────────────────────┬───────────────────────────────────┘ │
+└─────────────────────────┼────────────────────────────────────────┘
+                          │
+                          │ SQL Queries (Drizzle ORM)
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│               NEON (PostgreSQL Database)                        │
+│      postgresql://ep-xxx.region.aws.neon.tech                  │
+│  ┌───────────────────────────────────────────────────────────┐ │
+│  │  Tables:                                                   │ │
+│  │                                                            │ │
+│  │  users                                                     │ │
+│  │  ├─ id (UUID, Primary Key)                                │ │
+│  │  ├─ firstname (VARCHAR)                                   │ │
+│  │  ├─ lastname (VARCHAR)                                    │ │
+│  │  ├─ email (VARCHAR, Unique)                               │ │
+│  │  ├─ password (TEXT, Hashed)                               │ │
+│  │  ├─ salt (TEXT)                                           │ │
+│  │  └─ createdAt, updatedAt (TIMESTAMP)                      │ │
+│  │                                                            │ │
+│  │  urls                                                      │ │
+│  │  ├─ id (UUID, Primary Key)                                │ │
+│  │  ├─ ShortCode (VARCHAR, Unique)                           │ │
+│  │  ├─ targetURL (TEXT)                                      │ │
+│  │  ├─ userId (UUID, Foreign Key → users.id)                 │ │
+│  │  └─ createdAt, updatedAt (TIMESTAMP)                      │ │
+│  └───────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### User Journey Flow
+
+#### 1️⃣ **User Signup Flow**
+
+```
+User fills signup form
+       ↓
+Frontend validates input (Zod)
+       ↓
+POST /user/signup {firstname, lastname, email, password}
+       ↓
+Backend validates request
+       ↓
+Hash password with random salt (HMAC-SHA256)
+       ↓
+Insert user into database
+       ↓
+Return userId
+       ↓
+Frontend shows success toast
+       ↓
+Redirect to login
+```
+
+#### 2️⃣ **User Login Flow**
+
+```
+User enters email & password
+       ↓
+Frontend validates input
+       ↓
+POST /user/login {email, password}
+       ↓
+Backend finds user by email
+       ↓
+Hash provided password with user's salt
+       ↓
+Compare hashed passwords
+       ↓
+Generate JWT token (contains user.id)
+       ↓
+Return token to frontend
+       ↓
+Store token in localStorage
+       ↓
+Redirect to dashboard
+```
+
+#### 3️⃣ **URL Shortening Flow**
+
+```
+User enters long URL + optional custom alias
+       ↓
+Frontend validates URL format
+       ↓
+POST /shorten {url, code?}
+Headers: Authorization: Bearer <token>
+       ↓
+Backend middleware validates JWT token
+       ↓
+Extract userId from token
+       ↓
+Generate shortCode:
+  • If custom alias provided → use it
+  • Else → generate random 6-char code (nanoid)
+       ↓
+Insert URL into database
+  {ShortCode, targetURL, userId}
+       ↓
+Return {id, shortCode, targetURL}
+       ↓
+Frontend shows success message
+       ↓
+Display shortened URL with copy/open buttons
+       ↓
+Fetch updated URL list
+```
+
+#### 4️⃣ **URL Redirect Flow**
+
+```
+User visits: https://your-app.vercel.app/abc123
+       ↓
+Frontend React Router catches /:shortCode
+       ↓
+Frontend redirects to backend:
+  window.location.href = 'https://backend.onrender.com/abc123'
+       ↓
+Backend receives GET /abc123
+       ↓
+Query database for shortCode = 'abc123'
+       ↓
+Find targetURL
+       ↓
+Return HTTP 302 Redirect to targetURL
+       ↓
+Browser redirects to original URL
+```
+
+#### 5️⃣ **View URL History Flow**
+
+```
+User navigates to dashboard
+       ↓
+Frontend loads with authentication
+       ↓
+GET /codes
+Headers: Authorization: Bearer <token>
+       ↓
+Backend validates JWT token
+       ↓
+Extract userId from token
+       ↓
+Query database for all URLs where userId matches
+       ↓
+Return array of URL objects
+       ↓
+Frontend displays URLs in list
+  • Short URL
+  • Original URL
+  • Creation time
+  • Copy/Open/Delete buttons
+```
+
+#### 6️⃣ **Delete URL Flow**
+
+```
+User clicks delete button
+       ↓
+Frontend shows confirmation dialog
+       ↓
+User confirms deletion
+       ↓
+DELETE /:id
+Headers: Authorization: Bearer <token>
+       ↓
+Backend validates JWT token
+       ↓
+Extract userId from token
+       ↓
+Delete URL where id matches AND userId matches
+  (Ensures users can only delete their own URLs)
+       ↓
+Return {deleted: true}
+       ↓
+Frontend removes URL from Redux state
+       ↓
+Show success toast
+```
+
+### State Management Flow (Redux)
+
+```
+┌─────────────────────────────────────────┐
+│          Redux Store                    │
+│                                         │
+│  authSlice:                             │
+│  ├─ token: string | null                │
+│  ├─ isAuthenticated: boolean            │
+│  ├─ loading: boolean                    │
+│  └─ error: string | null                │
+│                                         │
+│  urlSlice:                              │
+│  ├─ urls: Array<URL>                    │
+│  ├─ currentUrl: URL | null              │
+│  ├─ loading: boolean                    │
+│  └─ error: string | null                │
+└─────────────────────────────────────────┘
+         ↕                    ↕
+    Components           API Calls
+    (useSelector)        (dispatch)
+         ↕                    ↕
+    ┌─────────┐        ┌──────────┐
+    │  Auth   │        │  Axios   │
+    │  Page   │        │ Instance │
+    └─────────┘        └──────────┘
+         ↕                    ↕
+    ┌─────────┐        ┌──────────┐
+    │Dashboard│        │ Backend  │
+    │  Page   │        │   API    │
+    └─────────┘        └──────────┘
+```
+
+### Authentication Flow Details
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  JWT Token Structure                                     │
+├──────────────────────────────────────────────────────────┤
+│                                                          │
+│  Header:                                                 │
+│  {                                                       │
+│    "alg": "HS256",                                       │
+│    "typ": "JWT"                                          │
+│  }                                                       │
+│                                                          │
+│  Payload:                                                │
+│  {                                                       │
+│    "id": "550e8400-e29b-41d4-a716-446655440000"         │
+│  }                                                       │
+│                                                          │
+│  Signature:                                              │
+│  HMACSHA256(                                             │
+│    base64UrlEncode(header) + "." +                       │
+│    base64UrlEncode(payload),                             │
+│    JWT_SECRET                                            │
+│  )                                                       │
+│                                                          │
+└──────────────────────────────────────────────────────────┘
+
+Every protected request includes:
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+Backend middleware:
+1. Extracts token from header
+2. Verifies signature with JWT_SECRET
+3. Decodes payload to get user.id
+4. Attaches user to request object
+5. Continues to route handler
+```
+
+### Data Flow Summary
+
+```
+Frontend (React)
+    ↓ User Action
+Redux Action Dispatched
+    ↓
+API Call (Axios)
+    ↓ HTTP Request + JWT Token
+Backend Route Handler
+    ↓
+Middleware (Auth + Validation)
+    ↓
+Business Logic
+    ↓
+Database Query (Drizzle ORM)
+    ↓ SQL Query
+PostgreSQL (Neon)
+    ↓ Query Result
+Backend Response
+    ↓ HTTP Response
+Redux State Updated
+    ↓
+React Component Re-renders
+    ↓
+UI Updates
+```
+
 ## 📁 Project Structure
 
 ```
@@ -92,66 +420,6 @@ url-shortener/
     ├── vite.config.js
     └── package.json
 ```
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- **Node.js** (v18 or higher)
-- **pnpm** (v8 or higher)
-- **PostgreSQL** database (Neon account)
-
-### Installation
-
-1. **Clone the repository**
-```bash
-git clone https://github.com/yourusername/url-shortener.git
-cd url-shortener
-```
-
-2. **Setup Backend**
-
-```bash
-cd backend
-
-# Install dependencies
-pnpm install
-
-# Create .env file
-cat > .env << EOL
-DATABASE_URL=postgresql://username:password@ep-xxx.region.aws.neon.tech/dbname?sslmode=require
-JWT_SECRET=your-super-secret-jwt-key-change-this
-PORT=8000
-EOL
-
-# Push database schema
-pnpm db:push
-
-# Start development server
-pnpm dev
-```
-
-3. **Setup Frontend**
-
-```bash
-cd frontend
-
-# Install dependencies
-pnpm install
-
-# Create .env file
-cat > .env << EOL
-VITE_API_BASE_URL=http://localhost:8000
-VITE_APP_URL=http://localhost:5173
-EOL
-
-# Start development server
-pnpm dev
-```
-
-4. **Open your browser**
-   - Frontend: http://localhost:5173
-   - Backend: http://localhost:8000
 
 ## 📚 API Documentation
 
@@ -270,81 +538,6 @@ Redirect to original URL (public).
 302 Redirect to target URL
 ```
 
-## 🌐 Deployment
-
-### Deploy Backend to Render
-
-1. **Push your code to GitHub**
-
-2. **Create a new Web Service on Render**
-   - Connect your GitHub repository
-   - **Root Directory**: `backend`
-   - **Build Command**: `pnpm install`
-   - **Start Command**: `pnpm start`
-
-3. **Add Environment Variables**
-   ```
-   DATABASE_URL=your-neon-connection-string
-   JWT_SECRET=your-secret-key
-   PORT=8000
-   ```
-
-4. **Deploy** and copy your backend URL
-
-### Deploy Frontend to Vercel
-
-1. **Install Vercel CLI**
-```bash
-pnpm add -g vercel
-```
-
-2. **Deploy**
-```bash
-cd frontend
-vercel --prod
-```
-
-3. **Set Environment Variables** in Vercel Dashboard
-   ```
-   VITE_API_BASE_URL=https://your-backend.onrender.com
-   VITE_APP_URL=https://your-frontend.vercel.app
-   ```
-
-4. **Update CORS** in backend with your Vercel URL
-
-## 🔧 Scripts
-
-### Backend
-```bash
-pnpm dev          # Start development server
-pnpm start        # Start production server
-pnpm db:push      # Push schema to database
-pnpm db:studio    # Open Drizzle Studio
-```
-
-### Frontend
-```bash
-pnpm dev          # Start development server
-pnpm build        # Build for production
-pnpm preview      # Preview production build
-pnpm lint         # Run ESLint
-```
-
-## 🎨 Environment Variables
-
-### Backend (.env)
-```env
-DATABASE_URL=postgresql://username:password@host/database?sslmode=require
-JWT_SECRET=your-super-secret-jwt-key-min-32-characters
-PORT=8000
-```
-
-### Frontend (.env)
-```env
-VITE_API_BASE_URL=http://localhost:8000
-VITE_APP_URL=http://localhost:5173
-```
-
 ## 🔒 Security Features
 
 - ✅ **Password Hashing** - Passwords are hashed using HMAC-SHA256 with random salt
@@ -391,7 +584,7 @@ This project is licensed under the ISC License.
 
 ## 👨‍💻 Author
 
-**Your Name**
+**Abhinav Sharma**
 - GitHub: [Abhinav Sharma](https://github.com/Abhinavsharma005)
 - Email: sharmaabhinav1013@gmail.com
 
