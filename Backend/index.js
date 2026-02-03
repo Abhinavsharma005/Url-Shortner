@@ -15,11 +15,12 @@ app.use(
     origin: [
       process.env.CORS_ORIGIN,     // dev
       "https://shorty.app",         // prod frontend
-      "https://www.shorty.app"
+      "https://www.shorty.app",
+      "http://localhost:5173"
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,    
+    credentials: true,
   })
 );
 
